@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Planificador Semanal de Comidas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#F8F5F0] text-[#4B3D2A] font-sans p-4">
+
+  <!-- Banner -->
+  <div class="max-w-4xl mx-auto mb-6">
+    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD... (BASE64 RECORTADO PARA EJEMPLO)" alt="Banner Bebé" class="rounded-xl shadow-md mx-auto w-full object-cover h-60" />
+  </div>
+
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold text-center mb-6 text-[#5A4836]">🍽️ Planificador de Comidas Semanal</h1>
+
+    <!-- Fecha -->
+    <div class="flex justify-center mb-6">
+      <label class="mr-2 text-lg">Selecciona el lunes:</label>
+      <input type="date" id="fecha-inicio" class="border border-gray-300 p-2 rounded" onchange="actualizarFechas()" />
+    </div>
+
+    <!-- Tabla -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-fixed border border-gray-300 bg-white shadow-md rounded">
+        <thead class="bg-[#E8D8C3]">
+          <tr>
+            <th class="border px-4 py-2">Día</th>
+            <th class="border px-4 py-2">Comida</th>
+            <th class="border px-4 py-2">Cena</th>
+          </tr>
+        </thead>
+        <tbody id="menu-body">
+          <!-- Generado dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center mt-6 space-x-4">
+      <button onclick="guardarMenu()" class="bg-[#A58B6F] hover:bg-[#8C735A] text-white px-6 py-2 rounded">💾 Guardar Semana</button>
+      <button onclick="editarSemana()" id="editar-btn" class="hidden bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded">✏️ Editar Semana</button>
+    </div>
+
+    <!-- Menú guardado -->
+    <div id="menu-guardado" class="mt-8 bg-white p-4 rounded shadow hidden">
+      <h2 class="text-2xl font-semibold mb-4">📋 Menú Guardado</h2>
+      <div id="tabla-guardada"></div>
+    </div>
+
+    <!-- Lista de compra -->
+    <div class="mt-10">
+      <h2 class="text-2xl font-semibold mb-4">🛒 Lista de la Compra</h2>
+      <ul id="lista-compra" class="bg-white p-4 rounded shadow list-disc pl-6"></ul>
+    </div>
+  </div>
+
+  <script>
+    const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    let fechas = [];
+    const ingredientes = new Set();
+
+    const ideasComida = [
+      "Ensalada de lentejas con huevo duro", "Pollo a la plancha con verduras", "Arroz integral con atún y tomate", 
+      "Tortilla de espinacas", "Sopa de calabaza con pan integral", "Pasta integral con tomate y atún", 
+      "Albóndigas de pollo con arroz", "Cuscús con verduras asadas", "Berenjenas rellenas de carne", 
+      "Fajitas de pollo y pimientos", "Lasaña vegetal"
+    ];
+
+    const ideasCena = [
+      "Crema de verduras con huevo poché", "Pescado al horno con limón", "Revuelto de champiñones", 
+      "Sopa de miso con tofu", "Tortilla francesa con espinacas", "Ensalada de garbanzos", 
+      "Wrap de pollo", "Sándwich de aguacate", "Zanahoria rallada con queso fresco"
+    ];
+
+    function actualizarFechas() {
+      const input = document.getElementById('fecha-inicio').value;
+      if (!input) return;
+      const base = new Date(input);
+      fechas = dias.map((_, i) => {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      });
+      crearTablaMenu();
+    }
+
+    function crearTablaMenu() {
+      const tbody = document.getElementById('menu-body');
+      tbody.innerHTML = '';
+      dias.forEach((dia, index) => {
+        const row = document.createElement('tr');
+
+        const tdDia = document.createElement('td');
+        tdDia.className = "border px-4 py-2 font-semibold text-center";
+        tdDia.innerHTML = `${dia}<br><span class="text-sm text-gray-500">${fechas[index] || ''}</span>`;
+
+        const tdComida = crearCelda('comida', index);
+        const tdCena = crearCelda('cena', index);
+
+        row.appendChild(tdDia);
+        row.appendChild(tdComida);
+        row.appendChild(tdCena);
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function crearCelda(tipo, diaIndex) {
+      const td = document.createElement('td');
+      td.className = "border px-4 py-2";
+      const textarea = document.createElement('textarea');
+      textarea.className = "w-full border p-1 rounded resize-none bg-[#FDFBF7]";
+      textarea.rows = 2;
+      textarea.dataset.tipo = tipo;
+      textarea.dataset.dia = diaIndex;
+
+      const btnIdea = document.createElement('button');
+      btnIdea.textContent = '🍽️ Dame una idea';
+      btnIdea.className = "mt-1 bg-[#D5C4B4] hover:bg-[#C2B1A1] text-sm px-2 py-1 rounded text-[#4B3D2A]";
+      btnIdea.onclick = () => {
+        const idea = tipo === 'comida' 
+          ? ideasComida[Math.floor(Math.random() * ideasComida.length)] 
+          : ideasCena[Math.floor(Math.random() * ideasCena.length)];
+        textarea.value = idea;
+        extraerIngredientes(idea);
+        actualizarListaCompra();
+      };
+
+      td.appendChild(textarea);
+      td.appendChild(btnIdea);
+      return td;
+    }
+
+    function guardarMenu() {
+      const tabla = document.createElement('table');
+      tabla.className = "w-full border border-gray-300 table-fixed mt-4 bg-[#FCF9F5]";
+      const thead = `
+        <thead class="bg-[#E8D8C3]">
+          <tr>
+            <th class="border px-4 py-2">Día</th>
+            <th class="border px-4 py-2">Comida</th>
+            <th class="border px-4 py-2">Cena</th>
+          </tr>
+        </thead>`;
+      let tbody = '<tbody>';
+
+      dias.forEach((dia, i) => {
+        const comida = document.querySelector(`textarea[data-tipo='comida'][data-dia='${i}']`).value;
+        const cena = document.querySelector(`textarea[data-tipo='cena'][data-dia='${i}']`).value;
+        tbody += `
+          <tr>
+            <td class="border px-4 py-2 font-semibold text-center">${dia}<br><span class="text-sm text-gray-500">${fechas[i] || ''}</span></td>
+            <td class="border px-4 py-2">${comida}</td>
+            <td class="border px-4 py-2">${cena}</td>
+          </tr>`;
+      });
+
+      tbody += '</tbody>';
+      tabla.innerHTML = thead + tbody;
+      document.getElementById('tabla-guardada').innerHTML = '';
+      document.getElementById('tabla-guardada').appendChild(tabla);
+      document.getElementById('menu-guardado').classList.remove('hidden');
+      document.getElementById('editar-btn').classList.remove('hidden');
+    }
+
+    function editarSemana() {
+      dias.forEach((_, i) => {
+        document.querySelector(`textarea[data-tipo='comida'][data-dia='${i}']`).value =
+          document.querySelector(`#tabla-guardada tr:nth-child(${i + 1}) td:nth-child(2)`).textContent.trim();
+        document.querySelector(`textarea[data-tipo='cena'][data-dia='${i}']`).value =
+          document.querySelector(`#tabla-guardada tr:nth-child(${i + 1}) td:nth-child(3)`).textContent.trim();
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function extraerIngredientes(texto) {
+      const palabras = texto.toLowerCase().split(/[\s,]+/);
+      palabras.forEach(p => {
+        if (p.length > 4 && !ingredientes.has(p)) {
+          ingredientes.add(p);
+        }
+      });
+    }
+
+    function actualizarListaCompra() {
+      const lista = document.getElementById('lista-compra');
+      lista.innerHTML = '';
+      ingredientes.forEach(item => {
+        const li = document.createElement('li');
+        li.className = "flex justify-between items-center";
+        li.innerHTML = `
+          <span>${item}</span>
+          <button onclick="eliminarIngrediente('${item}')" class="text-red-500 hover:text-red-700">❌</button>`;
+        lista.appendChild(li);
+      });
+    }
+
+    function eliminarIngrediente(nombre) {
+      ingredientes.delete(nombre);
+      actualizarListaCompra();
+    }
+  </script>
+</body>
+</html>
