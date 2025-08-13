@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>academia atlético de madrid - dpto performance</title>
+  <meta name="description" content="diario de entrenamiento con sesiones y múltiples ejercicios, exportación csv y calendario compacto" />
+  <style>
+    :root {
+      --bg: #0f172a;      /* slate-900 */
+      --card: #111827;    /* gray-900 */
+      --muted: #94a3b8;   /* slate-400 */
+      --text: #e5e7eb;    /* gray-200 */
+      --accent: #22c55e;  /* green-500 */
+      --danger: #ef4444;  /* red-500 */
+      --border: #1f2937;  /* slate-800 */
+      --focus: #38bdf8;   /* sky-400 */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 80% -10%, #1f2937, transparent), var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; margin-bottom: 20px; }
+    h1 { font-size: 18px; margin: 0; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .subtitle { font-size: 12px; color: var(--muted); }
+
+    /* logo */
+    #atm-logo { width: 56px; height: 56px; object-fit: contain; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background:#0b1220; }
+
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent), var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 980px) { .grid { grid-template-columns: 1.2fr .8fr; } }
+
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], input[type="number"], input[type="search"] {
+      width: 100%; padding: 12px 12px; border-radius: 12px; border: 1px solid var(--border); background: #0b1220; color: var(--text);
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(58,189,248,.25); }
+
+    .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .row + .row { margin-top: 12px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button { appearance: none; border: 1px solid var(--border); background: #0b1220; color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 600; letter-spacing: .2px; transition: transform .02s, background .2s, border-color .2s, opacity .2s; }
+    button:hover { background: #0f172a; }
+    button:active { transform: translateY(1px); }
+    .btn-primary { background: linear-gradient(180deg, rgba(34,197,94,.2), rgba(34,197,94,.05)); border-color: rgba(34,197,94,.4); }
+    .btn-danger { background: linear-gradient(180deg, rgba(239,68,68,.2), rgba(239,68,68,.05)); border-color: rgba(239,68,68,.4); }
+    .btn-ghost { background: transparent; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .spacer { flex: 1; }
+    .pill { padding: 6px 10px; border-radius: 999px; background: #0b1220; border: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+    .empty { text-align: center; color: var(--muted); padding: 24px 8px; }
+    .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* ejercicios dinámicos */
+    .ex-list { display: grid; gap: 10px; margin-top: 10px; }
+    .ex-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; }
+    .ex-row .remove { border-color: rgba(239,68,68,.4); }
+
+    /* calendario flotante con modo compacto/oculto */
+    .calendar { position: fixed; top: 16px; left: 16px; width: 260px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 30; transition: transform .2s ease, opacity .2s ease, top .2s ease, left .2s ease; }
+    .calendar.compact { transform: scale(.8); opacity: .95; top: 8px; left: 8px; }
+    @media (max-width: 600px) { .calendar.hidden-mobile { display: none; } }
+    .cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .cal-title { font-weight: 700; font-size: 14px; cursor: pointer; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-grid div { text-align:center; padding: 6px 0; border-radius: 8px; font-size: 12px; }
+    .cal-grid .dow { color: var(--muted); font-weight: 700; }
+    .cal-grid .day { cursor:pointer; border: 1px solid transparent; }
+    .cal-grid .day:hover { background:#0f172a; border-color: var(--border); }
+    .cal-grid .today { outline: 2px solid var(--focus); }
+    .cal-grid .selected { background:#0f172a; border:1px solid var(--focus); }
+
+    /* insignia sesiones */
+    .session-badge { font-size:12px; color: var(--muted); }
+
+    /* panel de pruebas */
+    #test-panel { margin-top: 16px; }
+    #test-log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; white-space: pre-wrap; background: #0b1220; border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); }
+    .pass { color: #22c55e; }
+    .fail { color: #ef4444; }
+
+    /* canvas de métricas */
+    .canvas-wrap { display:block; width:100%; }
+    #metrics-canvas { width:100%; height:auto; border:1px solid var(--border); border-radius:12px; background:#0b1220; }
+  </style>
+</head>
+<body>
+  <!-- calendario flotante -->
+  <div class="calendar" id="calendar">
+    <div class="cal-head">
+      <button id="cal-prev" class="btn-ghost" title="mes anterior">◀</button>
+      <div class="cal-title" id="cal-title" title="clic para expandir/compactar">mes año</div>
+      <button id="cal-next" class="btn-ghost" title="mes siguiente">▶</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div>
+          <h1>academia atlético de madrid - dpto performance</h1>
+          <div class="subtitle">diario de entrenamiento – sesiones con múltiples ejercicios</div>
+        </div>
+      </div>
+      <img alt="escudo" id="atm-logo" src="" title="clic para cambiar logo o pegar una imagen" />
+      <input type="file" id="logo-file" accept="image/*" style="display:none" />
+    </header>
+
+    <div class="pill" id="stats">0 sesiones</div>
+
+    <div class="grid" style="margin-top:12px">
+      <section class="card">
+        <form id="session-form" autocomplete="off">
+          <div class="row">
+            <div>
+              <label>nº de sesión</label>
+              <input id="session-number" type="number" min="1" step="1" readonly />
+            </div>
+            <div>
+              <label for="sdate">fecha</label>
+              <input id="sdate" name="date" type="date" required />
+            </div>
+            <div class="session-badge" style="display:flex;align-items:flex-end">rellena los ejercicios debajo</div>
+          </div>
+
+          <div class="ex-list" id="ex-list"><!-- filas dinámicas --></div>
+
+          <div class="actions">
+            <button type="button" id="add-ex" class="btn-ghost">añadir ejercicio</button>
+            <span class="spacer"></span>
+            <button class="btn-primary" id="save-session" type="submit">guardar sesión</button>
+            <button class="btn-ghost" id="reset-session" type="reset">limpiar</button>
+          </div>
+          <div class="note">los datos se guardan en tu navegador (localstorage). puedes exportar a csv por sesión o global.</div>
+        </form>
+      </section>
+
+      <aside class="card">
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="buscar por ejercicio" />
+          <input id="filter-date" type="date" />
+          <span class="spacer"></span>
+          <button id="export-btn">exportar csv</button>
+          <button id="clear-btn" class="btn-danger">borrar todo</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- canvas de métricas -->
+    <section class="card" id="metrics-card" style="margin-top:16px">
+      <div class="toolbar">
+        <strong>canvas de métricas</strong>
+        <span class="spacer"></span>
+        <button id="export-canvas" title="descargar imagen del gráfico">exportar png</button>
+      </div>
+      <div class="canvas-wrap" style="overflow:auto">
+        <canvas id="metrics-canvas" width="920" height="260" aria-label="gráfico de volumen por sesión"></canvas>
+      </div>
+      <div class="note">volumen = suma de (series × repeticiones) por sesión. usa los filtros para actualizar el gráfico.</div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">sesión</th>
+              <th style="width:140px">fecha</th>
+              <th>ejercicios (nombre · series × repeticiones)</th>
+              <th style="width:140px">acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr id="empty-row"><td colspan="4" class="empty">no hay sesiones todavía</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- panel de pruebas -->
+    <section class="card" id="test-panel">
+      <div class="toolbar">
+        <strong>pruebas automáticas</strong>
+        <span class="spacer"></span>
+        <button id="run-tests">ejecutar tests</button>
+      </div>
+      <div id="test-log">listo para ejecutar.</div>
+    </section>
+  </div>
+
+  <script>
+    // ===== utilidades base =====
+    const STORAGE_KEY = 'diarioEntrenamientoV2';
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    const state = {
+      sessions: [],
+      editId: null,
+      get filtered() {
+        const q = $('#search').value.trim().toLowerCase();
+        const fd = $('#filter-date').value; // yyyy-mm-dd
+        return this.sessions.filter(s => {
+          const okD = fd ? s.date === fd : true;
+          const okQ = q ? s.exercises.some(e => e.name.toLowerCase().includes(q)) : true;
+          return okD && okQ;
+        });
+      }
+    };
+    const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+    function load() { try { state.sessions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { state.sessions = []; } }
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sessions)); }
+
+    function setTodayIfEmpty() {
+      const d = $('#sdate');
+      if (!d.value) { const t = new Date(); d.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
+    }
+    function nextSessionNumber() { if (!state.sessions.length) return 1; const max = Math.max(...state.sessions.map(s => s.number)); return max + 1; }
+    function ensureSessionNumber() { $('#session-number').value = state.editId ? (state.sessions.find(s=>s.id===state.editId)||{}).number : nextSessionNumber(); }
+
+    // ===== ejercicios dinámicos =====
+    function renderExercises(listEl, items) { listEl.innerHTML = ''; if (!items.length) items = [{ name:'', sets:'', reps:'' }]; items.forEach((it) => addExerciseRow(it.name, it.sets, it.reps)); }
+    function addExerciseRow(name='', sets='', reps='') {
+      const row = document.createElement('div'); row.className = 'ex-row';
+      row.innerHTML = `
+        <div>
+          <label>nombre del ejercicio</label>
+          <input type="text" class="ex-name" placeholder="p. ej., rondo 5x2" value="${escapeHtml(name)}" required />
+        </div>
+        <div>
+          <label>series</label>
+          <input type="number" class="ex-sets" min="1" step="1" value="${sets}" required />
+        </div>
+        <div>
+          <label>repeticiones</label>
+          <input type="number" class="ex-reps" min="1" step="1" value="${reps}" required />
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button type="button" class="remove">quitar</button>
+        </div>`;
+      row.querySelector('.remove').addEventListener('click', () => row.remove());
+      $('#ex-list').appendChild(row);
+    }
+    function escapeHtml(str='') { return str.replace(/[&<>\"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;'}[s])); }
+
+    function clearForm() {
+      $('#session-form').reset(); $('#ex-list').innerHTML = ''; addExerciseRow(); setTodayIfEmpty(); state.editId = null; $('#save-session').textContent = 'guardar sesión'; ensureSessionNumber();
+    }
+
+    // ===== tabla =====
+    function renderTable() {
+      const tbody = $('#tbody'); tbody.innerHTML = '';
+      const rows = state.filtered.slice().sort((a,b)=>a.number-b.number);
+      if (!rows.length) {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4; td.className = 'empty'; td.textContent = 'no hay sesiones para mostrar'; tr.appendChild(td); tbody.appendChild(tr);
+      } else {
+        for (const s of rows) {
+          const tr = document.createElement('tr'); const list = s.exercises.map(e => `${escapeHtml(e.name)} · ${e.sets} × ${e.reps}`).join('<br>');
+          tr.innerHTML = `
+            <td>#${s.number}</td>
+            <td>${s.date}</td>
+            <td>${list}</td>
+            <td>
+              <button data-id="${s.id}" class="btn-ghost edit">editar</button>
+              <button data-id="${s.id}" class="btn-ghost" style="color:var(--danger)">borrar</button>
+            </td>`;
+          tbody.appendChild(tr);
+        }
+      }
+      $('#stats').textContent = `${state.sessions.length} ${state.sessions.length === 1 ? 'sesión' : 'sesiones'}`;
+      updateCanvas(); // <-- actualizar el canvas tras renderizar la tabla
+    }
+
+    // ===== eventos formulario =====
+    $('#add-ex').addEventListener('click', () => addExerciseRow());
+    $('#session-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const number = parseInt($('#session-number').value, 10);
+      const date = $('#sdate').value;
+      const exercises = $$('#ex-list .ex-row').map(row => ({
+        name: row.querySelector('.ex-name').value.trim(),
+        sets: parseInt(row.querySelector('.ex-sets').value,10),
+        reps: parseInt(row.querySelector('.ex-reps').value,10)
+      })).filter(e => e.name);
+      if (!date || !exercises.length || exercises.some(e => !e.sets || !e.reps)) { alert('revisa la fecha y los ejercicios. todos los campos son obligatorios.'); return; }
+      if (state.editId) { const idx = state.sessions.findIndex(s => s.id === state.editId); if (idx !== -1) state.sessions[idx] = { ...state.sessions[idx], date, exercises }; }
+      else { state.sessions.push({ id: uid(), number, date, exercises, createdAt: Date.now() }); }
+      save(); renderTable(); clearForm();
+    });
+    $('#reset-session').addEventListener('click', () => { state.editId = null; $('#save-session').textContent = 'guardar sesión'; ensureSessionNumber(); setTodayIfEmpty(); });
+    $('#tbody').addEventListener('click', (e) => {
+      const btn = e.target.closest('button'); if (!btn) return; const id = btn.getAttribute('data-id');
+      if (btn.classList.contains('edit')) {
+        const s = state.sessions.find(x => x.id === id); if (!s) return;
+        state.editId = id; $('#sdate').value = s.date; $('#session-number').value = s.number; renderExercises($('#ex-list'), s.exercises);
+        $('#save-session').textContent = 'actualizar sesión'; window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        if (confirm('¿borrar esta sesión?')) { state.sessions = state.sessions.filter(x => x.id !== id); save(); renderTable(); ensureSessionNumber(); }
+      }
+    });
+
+    // ===== filtros / export =====
+    $('#search').addEventListener('input', renderTable);
+    $('#filter-date').addEventListener('input', renderTable);
+    function toCsv(sessions) {
+      const header = ['sesion','fecha','ejercicio','series','repeticiones'];
+      const lines = [];
+      for (const s of sessions) {
+        for (const e of s.exercises) {
+          const row = [s.number, s.date, e.name.replaceAll('"','""'), e.sets, e.reps].map(v => typeof v === 'string' ? '"' + v + '"' : String(v)).join(',');
+          lines.push(row);
+        }
+      }
+      return [header.join(','), ...lines].join('\n');
+    }
+    $('#export-btn').addEventListener('click', () => {
+      const csv = toCsv(state.sessions); const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); const today = new Date().toISOString().slice(0,10);
+      a.href = url; a.download = `diario_entrenamiento_sesiones_${today}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+    $('#clear-btn').addEventListener('click', () => { if (!state.sessions.length) return; if (confirm('esto eliminará todas las sesiones. ¿continuar?')) { state.sessions = []; save(); renderTable(); ensureSessionNumber(); } });
+
+    // ===== calendario =====
+    let calDate = new Date();
+    function buildCalendar(date) {
+      const year = date.getFullYear(); const month = date.getMonth(); $('#cal-title').textContent = `${MONTHS[month]} ${year}`;
+      const grid = $('#cal-grid'); grid.innerHTML = '';
+      const dow = ['l','m','x','j','v','s','d']; dow.forEach(d => { const el = document.createElement('div'); el.textContent = d; el.className = 'dow'; grid.appendChild(el); });
+      const first = new Date(year, month, 1); const start = (first.getDay() + 6) % 7; const days = new Date(year, month+1, 0).getDate();
+      for (let i=0;i<start;i++){ const el=document.createElement('div'); grid.appendChild(el); }
+      for (let d=1; d<=days; d++) {
+        const el = document.createElement('div'); el.className = 'day'; el.textContent = d;
+        const isToday = new Date().toDateString() === new Date(year, month, d).toDateString(); if (isToday) el.classList.add('today');
+        el.addEventListener('click', () => {
+          const mm = String(month+1).padStart(2,'0'); const dd = String(d).padStart(2,'0');
+          $('#sdate').value = `${year}-${mm}-${dd}`; $('#filter-date').value = `${year}-${mm}-${dd}`; renderTable();
+          $$('.cal-grid .day').forEach(x=>x.classList.remove('selected')); el.classList.add('selected');
+          const cal = document.getElementById('calendar'); cal.classList.add('compact'); if (window.innerWidth <= 600) cal.classList.add('hidden-mobile');
+        });
+        grid.appendChild(el);
+      }
+    }
+    document.getElementById('cal-title').addEventListener('click', ()=>{ const cal = document.getElementById('calendar'); cal.classList.toggle('compact'); if (window.innerWidth <= 600) cal.classList.toggle('hidden-mobile'); });
+    document.getElementById('cal-prev').addEventListener('click', () => { calDate.setMonth(calDate.getMonth()-1); buildCalendar(calDate); });
+    document.getElementById('cal-next').addEventListener('click', () => { calDate.setMonth(calDate.getMonth()+1); buildCalendar(calDate); });
+
+    // ===== logo persistente =====
+    const logoImgEl = document.getElementById('atm-logo'); const logoFile = document.getElementById('logo-file');
+    const DEFAULT_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">
+        <defs><clipPath id="c"><path d="M12 10h96v90L60 130 12 100Z"/></clipPath></defs>
+        <path d="M12 10h96v90L60 130 12 100Z" fill="#0c2e6c" stroke="#0c2e6c" stroke-width="2"/>
+        <g clip-path="url(#c)">
+          <rect x="0" y="0" width="120" height="140" fill="white"/>
+          <g fill="#e0252b">
+            <rect x="26" y="40" width="12" height="90"/>
+            <rect x="46" y="40" width="12" height="90"/>
+            <rect x="66" y="40" width="12" height="90"/>
+            <rect x="86" y="40" width="12" height="90"/>
+          </g>
+          <polygon points="12,10 108,10 12,100" fill="white"/>
+          <circle cx="28" cy="28" r="6" fill="#0c2e6c"/>
+          <circle cx="48" cy="48" r="4" fill="#0c2e6c"/>
+          <circle cx="68" cy="28" r="4" fill="#0c2e6c"/>
+        </g>
+      </svg>`);
+    function loadLogo(){ const d = localStorage.getItem('atmLogoDataUrl'); logoImgEl.src = d || DEFAULT_LOGO; }
+    logoImgEl.addEventListener('click', ()=> logoFile.click());
+    logoFile.addEventListener('change', (e)=>{ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ localStorage.setItem('atmLogoDataUrl', r.result); logoImgEl.src = r.result; updateCanvas(); }; r.readAsDataURL(f); });
+    logoImgEl.addEventListener('paste', (e)=>{ const item = Array.from(e.clipboardData.items).find(i=>i.type.startsWith('image/')); if(!item) return; const f=item.getAsFile(); const r=new FileReader(); r.onload=()=>{localStorage.setItem('atmLogoDataUrl', r.result); logoImgEl.src=r.result; updateCanvas();}; r.readAsDataURL(f); });
+
+    // ===== canvas de métricas =====
+    const CANVAS_ID = 'metrics-canvas';
+    let canvasEl, ctx, dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    function getLogoForCanvas(){
+      const d = localStorage.getItem('atmLogoDataUrl');
+      if(!d) return null;
+      const img = new Image();
+      img.src = d;
+      return img;
+    }
+    let logoImg = null;
+
+    function computeVolumes(sessions){
+      // datos ordenados por número de sesión
+      const rows = sessions.slice().sort((a,b)=>a.number-b.number).map(s=>{
+        const vol = s.exercises.reduce((acc,e)=> acc + (Number(e.sets||0)*Number(e.reps||0)), 0);
+        return { n:s.number, date:s.date, volume:vol };
+      });
+      return rows;
+    }
+
+    function resizeCanvas(){
+      canvasEl = document.getElementById(CANVAS_ID);
+      if(!canvasEl) return;
+      const cssWidth = canvasEl.clientWidth || 920;
+      const cssHeight = 260;
+      canvasEl.width = Math.round(cssWidth * dpr);
+      canvasEl.height = Math.round(cssHeight * dpr);
+      ctx = canvasEl.getContext('2d');
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+
+    function drawChart(){
+      if(!canvasEl) return;
+      const rows = computeVolumes(state.filtered.length ? state.filtered : state.sessions);
+      const W = canvasEl.clientWidth || 920;
+      const H = 260;
+      // limpiar
+      ctx.clearRect(0,0,W,H);
+
+      // paddings
+      const P = { l: 56, r: 20, t: 24, b: 36 };
+      // eje y: buscar max
+      const maxV = Math.max(10, ...rows.map(r=>r.volume));
+      // grid
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial';
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#94a3b8';
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      ctx.lineWidth = 1;
+
+      const plotW = W - P.l - P.r;
+      const plotH = H - P.t - P.b;
+
+      // líneas horizontales (5)
+      const lines = 5;
+      for(let i=0;i<=lines;i++){
+        const y = P.t + (plotH * i/lines);
+        ctx.beginPath();
+        ctx.moveTo(P.l, y);
+        ctx.lineTo(W - P.r, y);
+        ctx.stroke();
+        const val = Math.round(maxV * (1 - i/lines));
+        ctx.fillText(String(val), 12, y+4);
+      }
+
+      // barras
+      const n = rows.length;
+      const gap = 8;
+      const barW = n ? Math.max(8, (plotW - (n+1)*gap) / n) : 0;
+
+      // colores
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#22c55e';
+      const text = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#e5e7eb';
+
+      rows.forEach((r, i) => {
+        const x = P.l + gap + i*(barW+gap);
+        const h = maxV ? (r.volume / maxV) * plotH : 0;
+        const y = P.t + (plotH - h);
+        // barra
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(x, y, barW, h);
+        ctx.globalAlpha = 1;
+        // etiqueta x (número de sesión)
+        ctx.fillStyle = text;
+        ctx.textAlign = 'center';
+        ctx.fillText('#'+r.n, x + barW/2, H - 12);
+      });
+
+      // título
+      ctx.textAlign = 'left';
+      ctx.fillStyle = text;
+      ctx.font = '600 14px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial';
+      ctx.fillText('volumen por sesión (series×reps)', P.l, 18);
+
+      // pintar logo (escudo) si existe
+      if(logoImg && logoImg.complete){
+        const s = 28; // tamaño en px
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(logoImg, W - P.r - s - 4, P.t + 4, s, s);
+        ctx.restore();
+      }
+    }
+
+    function updateCanvas(){
+      resizeCanvas();
+      drawChart();
+    }
+
+    function initCanvas(){
+      resizeCanvas();
+      logoImg = getLogoForCanvas();
+      if(logoImg){
+        if(!logoImg.complete){
+          logoImg.onload = () => { drawChart(); };
+        }
+      }
+      drawChart();
+      // export png
+      const btn = document.getElementById('export-canvas');
+      if(btn){
+        btn.addEventListener('click', ()=>{
+          const a = document.createElement('a');
+          a.download = `grafico_volumen_${new Date().toISOString().slice(0,10)}.png`;
+          a.href = canvasEl.toDataURL('image/png');
+          a.click();
+        });
+      }
+      // redibujar al cambiar tamaño
+      window.addEventListener('resize', () => { updateCanvas(); });
+    }
+
+    // ===== tests automáticos =====
+    function log(msg, ok=true){ const line = (ok? '✔ ' : '✘ ') + msg + '\\n'; const el = document.getElementById('test-log'); el.innerHTML += `<span class="${ok?'pass':'fail'}">${line}</span>`; console[(ok?'log':'error')](msg); }
+    function resetData(){ state.sessions = []; save(); renderTable(); ensureSessionNumber(); $('#filter-date').value=''; $('#search').value=''; }
+    function _test_addSession(number, date, exercises){ state.sessions.push({ id: uid(), number, date, exercises }); save(); renderTable(); }
+    document.getElementById('run-tests').addEventListener('click', () => {
+      document.getElementById('test-log').textContent = '';
+      resetData();
+      // T1: autoincremento
+      const n1 = nextSessionNumber(); log(`nº de sesión inicial debe ser 1 (obtenido ${n1})`, n1===1);
+      // T2: guardar sesión con 2 ejercicios
+      _test_addSession(1, '2025-01-10', [ {name:'rondo 5x2', sets:4, reps:10}, {name:'posesión 6v6', sets:3, reps:8} ]);
+      log(`se guardó 1 sesión`, state.sessions.length===1);
+      log(`la sesión tiene 2 ejercicios`, state.sessions[0].exercises.length===2);
+      // T3: autoincremento siguiente
+      const n2 = nextSessionNumber(); log(`siguiente nº de sesión debe ser 2 (obtenido ${n2})`, n2===2);
+      // T4: export csv
+      const csv = toCsv(state.sessions); const lines = csv.split('\\n'); log(`csv tiene cabecera + 2 filas (obtenido ${lines.length})`, lines.length===3);
+      // T5: calendario compacto tras click en día
+      const anyDay = document.querySelector('#cal-grid .day'); if (anyDay) anyDay.click(); const compact = document.getElementById('calendar').classList.contains('compact'); log('calendario entra en modo compacto tras elegir día', compact);
+      // T6: estado vacío
+      state.sessions = []; save(); renderTable(); const emptyMsg = document.querySelector('#tbody').textContent.toLowerCase().includes('no hay sesiones'); log('estado vacío muestra aviso', emptyMsg);
+      // T7: csv escapa comillas
+      resetData(); _test_addSession(1, '2025-02-01', [{name:'pase "largo", diagonal', sets:1, reps:5}]); const csv2 = toCsv(state.sessions); log('csv escapa comillas doblándolas', csv2.includes('"pase ""largo"", diagonal"'));
+    });
+
+    // ===== init =====
+    load(); loadLogo(); let calDateInit = new Date(); buildCalendar(calDateInit); setTodayIfEmpty(); ensureSessionNumber(); addExerciseRow(); renderTable(); initCanvas();
+  </script>
+</body>
+</html>
